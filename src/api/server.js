@@ -13,10 +13,11 @@ const port = 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
-require('dotenv');
-const accountSid = 'ACa54a932a23d4f0f3a2c15e5c4c8c5edc';
+const dotenv = require('dotenv');
+dotenv.config({ path: '../../.env' });
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
 console.log(accountSid)
-const authToken = 'be416dbf0de1558fba6a4bc2b661b844';
+const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = require('twilio')(accountSid, authToken);
 
 
