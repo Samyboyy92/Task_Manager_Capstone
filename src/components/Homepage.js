@@ -10,22 +10,26 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LogoutIcon from '@mui/icons-material/Logout';
 import CheckIcon from '@mui/icons-material/Check';
+import { DataArrayOutlined } from "@mui/icons-material";
+import axios from 'axios';
 
 export default function Homepage() {
   const [todo, setTodo] = useState("");
   const [todos, setTodos] = useState([]);
   const [isEdit, setIsEdit] = useState(false);
   const [tempUidd, setTempUidd] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     auth.onAuthStateChanged((user) => {
-      if (user) {
-        // read
-        onValue(ref(db, `/${auth.currentUser.uid}`), (snapshot) => {
+      if (user) {        
+        onValue(ref(db, `/users/${auth.currentUser.uid}`), (snapshot) => {
+          setPhoneNumber(snapshot.val().phoneNumber);
           setTodos([]);
-          const data = snapshot.val();
-          if (data !== null) {
+          const data = snapshot.val().todos;
+          console.log(data) 
+          if (data !== null && data !== undefined) {
             Object.values(data).map((todo) => {
               setTodos((oldArray) => [...oldArray, todo]);
             });
@@ -50,11 +54,38 @@ export default function Homepage() {
   // add
   const writeToDatabase = () => {
     const uidd = uid();
-    set(ref(db, `/${auth.currentUser.uid}/${uidd}`), {
+    set(ref(db, `/users/${auth.currentUser.uid}/todos/${uidd}`), {
       todo: todo,
-      uidd: uidd
+      uidd: uidd,
     });
 
+    axios.post('http://localhost:3001/sms', {
+   message: `New task added: ${todo}`,
+   to: phoneNumber,
+ })
+ .then((res) => {
+   if (res.data.success) {
+     console.log('SMS sent successfully');
+   } else {
+     console.error('Failed to send SMS');
+   }
+ })
+ .catch((error) => {
+   if (error.response) {
+     // The request was made and the server responded with a status code
+     // that falls out of the range of 2xx
+     console.error(error.response.data);
+     console.error(error.response.status);
+     console.error(error.response.headers);
+   } else if (error.request) {
+     // The request was made but no response was received
+     console.error(error.request);
+   } else {
+     // Something happened in setting up the request that triggered an Error
+     console.error('Error', error.message);
+   }
+   console.error(error.config);
+ });
     setTodo("");
   };
 
@@ -63,12 +94,13 @@ export default function Homepage() {
     setIsEdit(true);
     setTodo(todo.todo);
     setTempUidd(todo.uidd);
+    setPhoneNumber(todo.phoneNumber);
   };
 
   const handleEditConfirm = () => {
-    update(ref(db, `/${auth.currentUser.uid}/${tempUidd}`), {
+    update(ref(db, `/users/${auth.currentUser.uid}/todos/${tempUidd}`), {
       todo: todo,
-      tempUidd: tempUidd
+      tempUidd: tempUidd,
     });
 
     setTodo("");
@@ -77,7 +109,7 @@ export default function Homepage() {
 
   // delete
   const handleDelete = (uid) => {
-    remove(ref(db, `/${auth.currentUser.uid}/${uid}`));
+    remove(ref(db, `/users/${auth.currentUser.uid}/todos/${uid}`));
   };
 
   return (
@@ -90,8 +122,8 @@ export default function Homepage() {
         onChange={(e) => setTodo(e.target.value)}
       />
 
-      {todos.map((todo) => (
-        <div className="todo">
+      {todos.map((todo, index) => (
+        <div className="todo" key={index}>
           <h1>{todo.todo}</h1>
           <EditIcon
             fontSize="large"

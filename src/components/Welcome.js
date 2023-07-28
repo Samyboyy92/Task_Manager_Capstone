@@ -8,16 +8,20 @@ import { auth } from "../firebase.js";
 import { useNavigate } from "react-router-dom";
 import "./welcome.css";
 import TodoSVG from '../assets/undraw_to_do_list_re_9nt7.svg'
+import {  db } from "../firebase.js";
+import { set, ref } from "firebase/database";
 
 export default function Welcome() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerInformation, setRegisterInformation] = useState({
     email: "",
     confirmEmail: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    phoneNumber: "",
   });
 
   const navigate = useNavigate();
@@ -56,16 +60,22 @@ export default function Welcome() {
       alert("Please confirm that password are the same");
       return;
     }
+    console.log(registerInformation.phoneNumber); 
     createUserWithEmailAndPassword(
       auth,
       registerInformation.email,
-      registerInformation.password
+      registerInformation.password,
     )
-      .then(() => {
-        navigate("/homepage");
-      })
-      .catch((err) => alert(err.message));
-  };
+    .then((userCredential) => {        
+      set(ref(db, `users/${userCredential.user.uid}/phoneNumber`), registerInformation.phoneNumber)
+        .then(() => {
+          console.log('Phone number saved successfully');
+          navigate("/homepage");
+        })
+        // .catch(err => console.log('Error saving phone number: ', err));
+    })
+    .catch((err) => alert(err.message));
+};
 
   return (
     <div className="welcome">
@@ -115,6 +125,17 @@ export default function Welcome() {
                 setRegisterInformation({
                   ...registerInformation,
                   confirmPassword: e.target.value
+                })
+              }
+            />
+            <input
+              type="phoneNumber"
+              placeholder="Phone Number"
+              value={registerInformation.phoneNumber}
+              onChange={(e) =>
+                setRegisterInformation({
+                  ...registerInformation,
+                  phoneNumber: e.target.value
                 })
               }
             />
